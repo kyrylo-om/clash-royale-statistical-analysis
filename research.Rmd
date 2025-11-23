@@ -1,0 +1,138 @@
+---
+title: "research"
+output: html_document
+---
+
+## Libraries
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(readxl)
+```
+
+## Read dataset
+
+```{r}
+dataset_name <- "jan 1.csv"
+
+raw_data <- read_csv(dataset_name)
+card_lookup <- read_csv("cards.xls")
+card_map <- setNames(card_lookup$team.card1.name, as.character(card_lookup$team.card1.id))
+```
+
+## Clean dataset
+
+```{r}
+clean_data <- raw_data %>%
+  rename(match_id = 1)
+  #mutate(battleTime = ymd_hms(battleTime))
+  #mutate(across(matches("card[0-9]+\\.id"), ~ card_map[as.character(.)])) %>%
+  #mutate(
+  #  winner.cards.list = str_replace_all(winner.cards.list, card_map),
+  #  loser.cards.list = str_replace_all(loser.cards.list, card_map)
+  #)
+
+head(clean_data)
+```
+
+## A single card stats
+
+```{r}
+target_card_name <- "Mother Witch"
+
+target_row <- card_lookup %>% 
+  filter(team.card1.name == target_card_name)
+
+if (nrow(target_row) == 0) {
+  stop(paste("Card not found in cards.xls:", target_card_name))
+}
+
+target_id <- as.character(target_row$team.card1.id[1])
+print(paste("Analyzing Card:", target_card_name, "| ID:", target_id))
+
+# Count how many Winners have it
+winners_with_eg <- sum(str_detect(clean_data$winner.cards.list, target_id), na.rm = TRUE)
+
+# Count how many Losers have it
+losers_with_eg <- sum(str_detect(clean_data$loser.cards.list, target_id), na.rm = TRUE)
+
+# Total players using it
+total_with_eg <- winners_with_eg + losers_with_eg
+
+# Total players in the dataset (2 players per match)
+total_matches <- nrow(clean_data)
+
+winners_without_eg <- total_matches - winners_with_eg
+losers_without_eg <- total_matches - losers_with_eg
+total_without_eg <- winners_without_eg + losers_without_eg
+
+
+prob_with_eg <- winners_with_eg / total_with_eg * 100
+prob_without_eg <- winners_without_eg / total_without_eg * 100
+
+# Print the results
+print(paste("Total players using", target_card_name, ":", total_with_eg))
+print(paste("Winners using", target_card_name, ":", winners_with_eg))
+print(paste("Losers using", target_card_name, ":", losers_with_eg))
+print(paste("Total players NOT using", target_card_name, ":", total_without_eg))
+print(paste("Win Rate WITH", target_card_name, ":", round(prob_with_eg, 2), "%"))
+print(paste("Win Rate WITHOUT", target_card_name, ":", round(prob_without_eg, 2), "%"))
+```
+
+## Alternative approach (counting only the games where only a single player has the card)
+
+```{r}
+winner_has <- str_detect(clean_data$winner.cards.list, target_id)
+loser_has  <- str_detect(clean_data$loser.cards.list, target_id)
+
+# 2. Isolate the specific scenarios we care about
+# Case A: Only the Winner had the card (The card "won")
+only_winner_has <- winner_has & !loser_has
+
+# Case B: Only the Loser had the card (The card "lost")
+only_loser_has <- !winner_has & loser_has
+
+# 3. Count the occurrences
+wins_with_card <- sum(only_winner_has, na.rm = TRUE)
+losses_with_card <- sum(only_loser_has, na.rm = TRUE)
+
+# 4. Calculate Probability
+# This represents the win rate when the card is present on only one side of the field.
+total_valid_games <- wins_with_card + losses_with_card
+
+win_rate <- if (total_valid_games > 0) (wins_with_card / total_valid_games) * 100 else 0
+
+# 5. Print the Results
+print(paste("--- Strict Stats for", target_card_name, "---"))
+print(paste("Games where ONLY the winner had the card:", wins_with_card))
+print(paste("Games where ONLY the loser had the card:", losses_with_card))
+print(paste("Calculated Win Rate (in non-mirror matches):", round(win_rate, 2), "%"))
+print(paste("Win Rate if you DO NOT have the card (against someone who does):", round(100 - win_rate, 2), "%"))
+```
+
+## Winner's average elixir distribution
+
+```{r}
+ggplot(clean_data, aes(x = winner.elixir.average)) +
+  geom_histogram(binwidth = 0.1, fill = "cornflowerblue", color = "white") +
+  labs(
+    title = "Distribution of Winner's Average Elixir Cost",
+    x = "Average Elixir",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+```
+
+## Loser's average elixir distribution
+
+```{r}
+ggplot(clean_data, aes(x = loser.elixir.average)) +
+  geom_histogram(binwidth = 0.1, fill = "red", color = "white") +
+  labs(
+    title = "Distribution of Loser's Average Elixir Cost",
+    x = "Average Elixir",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+```
