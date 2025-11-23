@@ -14,26 +14,11 @@ library(readxl)
 ## Read dataset
 
 ```{r}
-dataset_name <- "jan 1.csv"
+dataset_name <- "december.csv"
 
-raw_data <- read_csv(dataset_name)
+clean_data <- read_csv(dataset_name)
 card_lookup <- read_csv("cards.xls")
 card_map <- setNames(card_lookup$team.card1.name, as.character(card_lookup$team.card1.id))
-```
-
-## Clean dataset
-
-```{r}
-clean_data <- raw_data %>%
-  rename(match_id = 1)
-  #mutate(battleTime = ymd_hms(battleTime))
-  #mutate(across(matches("card[0-9]+\\.id"), ~ card_map[as.character(.)])) %>%
-  #mutate(
-  #  winner.cards.list = str_replace_all(winner.cards.list, card_map),
-  #  loser.cards.list = str_replace_all(loser.cards.list, card_map)
-  #)
-
-head(clean_data)
 ```
 
 ## A single card stats
