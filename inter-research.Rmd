@@ -1,0 +1,368 @@
+---
+title: "research"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Statistical analysis of different factors' influence on match outcome in Clash Royale
+
+**Team Members:** Anton Deputat, Adam Rudko, Omelianchuk Kyrylo
+
+In this project we will analyze data from the [Clash Royale S18 Ladder
+Datasets (37.9M matches) \|
+Kaggle](https://www.kaggle.com/datasets/bwandowando/clash-royale-season-18-dec-0320-dataset)
+dataset to see how different cards impact the outcome of a match. Some
+of the data this dataset offers is: the arena, outcome of the match,
+trophy count of the players, hit-points of the towers at the end of the
+match, stats about the decks the winner and loser are using (average
+elixir, counts of different card types), and the 16 card IDs for both
+winner and loser (8 each), which can be used to gather even more data.
+This data was gathered from 37.9 million matches from December 07 2020
+to January 04 2021. From this data we will study how different cards,
+their stats, and other factors impact the outcome of a match.
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(readxl)
+```
+
+```{r}
+dataset_name <- "archive/jan 1.csv"
+
+raw_data <- read_csv(dataset_name) %>% rename(match_id = 1)
+```
+
+## Hypotheses we wish to explore:
+
+### 1. Card Level Hypothesis
+
+**Data used**: `winner.totalcard.level`, `loser.totalcard.level`
+
+Each card has a level that dictates how powerful the card is. We would
+like to test how much it actually impacts the outcome of a match and
+prove one of the game’s hints that states that the level of a card is
+what matters, not its rarity. To test this we will use the total sum of
+levels of all 8 cards in a deck and compare this value for both players.
+Whichever player has the higher value of this sum, we expect to have a
+higher chance of winning, and the bigger the difference the better the
+chance.
+
+-   **Null hypothesis** $H_0$: A player with the larger card level sum
+    has the same chance of winning as the player with the lower sum.
+-   **Alternative Hypothesis** $H_1$: A player with the larger card
+    level sum has a higher chance of winning than the player with the
+    lower sum.
+
+**The test**: For testing this we will separate the data into two parts,
+one with wins where the card level sum is bigger than that of the
+opponent's and one with wins where the card level sum is less than the
+opponent's. Then we will use a simple z-test and compare the proportion
+of wins in each group and formulate a conclusion.
+
+-   **Statistical null hypothesis** $H_0$: The proportion of wins in
+    both groups are equal (meaning the wins are evenly split 50/50).
+
+-   **Statistical alternative hypothesis** $H_1$: The number of wins in
+    the group where the winning player has a higher card level sum is
+    bigger than that of the other group (meaning that the proportion of
+    wins is skewed towards players with the higher card level sum).
+
+Let each match be a random variable $X_i$. - $X_i = 1$ when the player
+with the higher card level sum wins. - $X_i = -1$ when the player with
+the lower card level sum wins. - $X_i = 0$ when both players have the
+same card level sum (which is insignificant for this test).
+
+Then we calculate empirical counts $n_1 = \#\{i: X_i = 1\}$
+$n_{-1} = \#\{i: X_i = -1\}$ $n = n_1 + n_{-1}$
+
+We use the reduced sample space where $X_i \ne 0$ because the case
+$X_i = 0$, where both players have the same card level, doesn't impact
+the data as the number of wins and loses in this case is the same and
+provides no information for what we want to test.
+
+Then formulate proportion of wins for each case out of the total:
+$p_1 = \frac{n_1}{n}$ $p_{-1} = \frac{n_{-1}}{n}$
+
+and formulate hypothesis: $H_0: p_1 = p_{-1}$ $H_1: p_1 > p_{-1}$
+
+or simplify to only use $p_1$ as $p_1 + p_{-1} = 1$
+
+$H_0: p_1 = 0.5$ $H_1: p_1 > 0.5$
+
+Then we can find the z-test and critical region
+
+$z = \frac{\sqrt{n}(p_1-0.5)}{\sqrt{0.5(1-0.5)}} = \frac{\sqrt{n}(p_1-0.5)}{\sqrt{0.25}} = \frac{\sqrt{n}(p_1-0.5)}{0.5} = 2\sqrt{n}(p_1-0.5)$
+
+Where variance is essentially that of a Bernoulli random variable as we
+use a reduced sample space of counting when $X_i = 1$
+
+$C_{\alpha} = \{z > z_{1-\alpha}\}$
+
+For $\alpha = 0.05$
+
+$C_{0.05} = \{z > z_{0.95}\}$ $C_{0.05} = \{z > 1.645\}$
+
+```{r}
+winner_loser_counts <- raw_data %>%
+  mutate(X = case_when(
+    winner.totalcard.level > loser.totalcard.level ~ 1,
+    winner.totalcard.level < loser.totalcard.level ~ -1,
+    TRUE ~ 0
+  )) %>%
+  count(X)
+
+
+n_1 <- sum(raw_data$winner.totalcard.level > raw_data$loser.totalcard.level)
+n <- sum(raw_data$winner.totalcard.level != raw_data$loser.totalcard.level)
+
+p_1 <- n_1/n
+
+print(paste("n_1 = ", n_1, sep=""))
+print(paste("n = ", n, sep=""))
+print(paste("p_1 = ", p_1, sep=""))
+
+z <- 2*sqrt(n)*(p_1 - 0.5)
+print(paste("z = ", z, sep=""))
+
+p <- 1 - pnorm(z)
+print(paste("p value = ", p, sep=""))
+
+a <- 0.05
+z_critical_region <- qnorm(1-a)
+
+print(paste("Rejected H_0: ", z > z_critical_region))
+```
+
+From this testing we reject the null hypothesis for $\alpha = 0.05$,
+which means the card level sum has an influence roughly 95% of the time.
+Further we compute the p value of 0, which means that we always reject
+the null hypothesis $H_0: p_1 = p_{-1} = 0.5$, which indicates that we
+can be certain that the card level sum does have an influence on the
+match outcome in favor of the player with the higher card level sum.
+
+### 2. Elixir Cost Hypothesis
+
+**Data used**: `winner.elixir.average`, `loser.elixir.average`
+
+In Clash Royale you have to spend elixir to play a card. Though this
+elixir has to regenerate at set rates throughout the match. Each card
+has an elixir cost, which then defines the "average elixir cost" of a
+deck from the 8 cards in a deck. If the average is very low the cards
+are usually too weak and it’s hard to make an attack, but if it’s too
+high this can hinder the deck, as due to elixir having to regenerate,
+the player has to wait longer before playing a card and therefore has no
+options when they have to defend.
+
+-   **Null hypothesis** $H_0$: the average elixir cost of a deck does
+    not affect the player’s chance of winning.\
+-   **Alternative hypothesis** $H_1$: the more distant the average
+    elixir cost of a deck is from the universal average, the lower is
+    the chance that the player will win.
+
+**The test:** to prove the correlation between the deviation of the
+average elixir cost from the universal mean $\mu$ and the chance of
+winning, we will use linear regression. It is worth noting, that, even
+though a logistic regression would be more appropriate in this context,
+for this specific task, which is proving that one value has influence
+over the other, a simple linear regression would be enough. In this
+model, X-Axis is the parameter $a$ - the distance of the average elixir
+cost from the mean. So, basically, we divide our dataset into many
+groups, where each group will contain the decks with average elixir cost
+in the range $$(-\infty; \mu-a]  \cup  [\mu+a, \infty)$$and then the
+probability ratio of winning in this group will be calculated, which is
+the sum of wins in the group / total matches in the group. This
+probability is the Y-Axis. So the statistical hypotheses will look like
+this:
+
+-   **Statistical null hypothesis** $H_0$: the slope of the regression
+    equation is equal to zero. (Means that x does not affect y in any
+    way)\
+-   **Statistical alternative hypothesis** $H_1$: the slope of the
+    regression equation is negative. (Means that y gets smaller with
+    greater x)
+
+To validate the linear regression model $Y = a + bX$, we need to test if
+the slope $b$ is significantly different from 0. Specifically, we want
+to see if there is a negative correlation (as deviation increases, win
+rate decreases).
+
+We define the test statistic $t$ using the estimated slope
+$\hat{\beta}_1$ (which is our $b$) and its standard error
+$SE(\hat{\beta}_1)$.
+
+$$t = \frac{\hat{\beta}_1 - 0}{SE(\hat{\beta}_1)}$$
+
+Where:
+
+\- $\hat{\beta}_1$ is the slope coefficient from our linear model.\
+- $SE(\hat{\beta}_1)$ is the standard error of that slope.\
+- The degrees of freedom for this test is $df = n - 2$, where $n$ is the
+number of data points (groups) in our dataframe.
+
+We establish the critical region for a one-tailed test (since our
+alternative hypothesis is that the slope is *negative*):
+$C_{\alpha} = \{t < t_{\alpha, df}\}$
+
+For $\alpha = 0.05$, we find the critical t-value using the quantile
+function of the t-distribution.
+
+------------------------------------------------------------------------
+
+First of all, let's find those groups so it's easier to understand the
+intent. Here are the calculated probabilities of each group with respect
+to $a$ (with step 0.05):
+
+```{r}
+all_elixir_costs <- c(raw_data$winner.elixir.average, raw_data$loser.elixir.average)
+mu <- mean(all_elixir_costs, na.rm = TRUE)
+std_dev <- sd(all_elixir_costs, na.rm = TRUE)
+
+a_values <- seq(0.1, 3 * std_dev, by = 0.05)
+
+results <- data.frame(a = numeric(), extreme_wins = numeric(), extreme_losses = numeric(), extreme_count = numeric(), win_rate = numeric())
+
+for (val in a_values) {
+  lower_bound <- mu - val
+  upper_bound <- mu + val
+
+  winner_is_extreme <- raw_data$winner.elixir.average < lower_bound | raw_data$winner.elixir.average > upper_bound
+
+  loser_is_extreme  <- raw_data$loser.elixir.average < lower_bound | raw_data$loser.elixir.average > upper_bound
+
+  wins_extreme   <- sum(winner_is_extreme, na.rm = TRUE)
+  losses_extreme <- sum(loser_is_extreme, na.rm = TRUE)
+
+  total_extreme_games <- wins_extreme + losses_extreme
+
+  wr_extreme <- if (total_extreme_games > 0) (wins_extreme / total_extreme_games) * 100 else NA
+
+  results <- rbind(results, data.frame(a = val, extreme_wins = wins_extreme, extreme_losses = losses_extreme, extreme_count = total_extreme_games, win_rate = wr_extreme))
+}
+
+print(head(results))
+```
+
+So now we have a dataframe, where we store the counts of wins and losses
+for each group, and, with that info, can calculate the win rate for each
+group using the formula
+$win rate = \dfrac{wincounts}{wincounts+losscounts} * 100\%$
+
+To make our data even more clear, we can draw a graph:
+
+```{r}
+ggplot(results, aes(x = a, y = win_rate)) +
+  geom_line(color = "firebrick", size = 1.2) +
+  geom_point(color = "firebrick") +
+  # Add a vertical line for the actual Standard Deviation
+  geom_vline(xintercept = std_dev, linetype = "dashed", color = "black") +
+  annotate("text", x = std_dev, y = min(results$win_rate, na.rm=TRUE), 
+           label = "1 SD", color = "black", vjust = -1, angle = 90) +
+  labs(
+    title = "Impact of Deviation from Universal mean on Winrate",
+    subtitle = "Winrate of 'Extreme' decks as their average elixir cost gets more distant from the mean",
+    x = "Deviation from the Mean average elixir cost",
+    y = "Win Rate of Extreme Group (%)"
+  ) +
+  theme_minimal()
+```
+
+Now we can clearly see that when the cost of a deck deviates for more
+than 1.2 elixir points from the mean, the probability of winning with
+such a deck drastically decreases. This proves our hypothesis
+intuitively, but, to make it statistically sound, we will have to rely
+on linear regression.
+
+The regression equation would be:
+
+$$Y = a + b X$$
+
+Let's fit a model to our data:
+
+```{r}
+linear_model <- lm(win_rate ~ a, data = results)
+
+results$predicted_linear <- predict(linear_model)
+
+summary(linear_model)
+
+ggplot(results, aes(x = a)) +
+  geom_line(aes(y = win_rate), color = "firebrick", size = 1.2) +
+  geom_point(aes(y = win_rate), color = "firebrick") +
+  
+  geom_line(aes(y = predicted_linear), color = "darkgreen", size = 2, linetype = "solid") +
+  
+  labs(
+    title = "Impact of Deviation from Mean (Linear Fit)",
+    subtitle = "Red: Actual Data | Green: Linear Regression",
+    x = "Deviation from the Mean (a)",
+    y = "Win Rate (%)"
+  ) +
+  theme_minimal()
+```
+
+This line doesn't fit very well. Could we improve it? Yes, we could, by
+adding a new parameter to the regression equation, making it quadratic:
+
+$$Y = a + b X + cX^2$$
+
+```{r}
+polynomial_model <- lm(win_rate ~ a + I(a^2), data = results)
+
+results$predicted_polynomial <- predict(polynomial_model)
+
+summary(polynomial_model)
+
+ggplot(results, aes(x = a)) +
+  geom_line(aes(y = win_rate), color = "firebrick", size = 1.2) +
+  geom_point(aes(y = win_rate), color = "firebrick") +
+  
+  geom_line(aes(y = predicted_linear), color = "darkgreen", size = 1, linetype = "solid") +
+  
+  geom_line(aes(y = predicted_polynomial), color = "blue", size = 2, linetype = "solid") +
+  
+  labs(
+    title = "Impact of Deviation from Mean (Linear Fit)",
+    subtitle = "Red: Actual Data | Green: Linear Regression | Blue: Polynomial Regression",
+    x = "Deviation from the Mean (a)",
+    y = "Win Rate (%)"
+  ) +
+  theme_minimal()
+```
+
+Now it fits much better! But do we actually need a 100% accurate
+representation of the data for our hypothesis? Again, no. A simple
+linear regression is enough to test if the win rate depends on deviation
+or not.
+
+So now, having settled on the model and having the data, we can get to
+testing.
+
+```{r}
+model_summary <- summary(linear_model) 
+coeffs <- model_summary$coefficients
+
+slope_b <- coeffs[2, 1]
+se_b <- coeffs[2, 2]
+
+t_stat <- slope_b / se_b
+
+df <- nrow(results) - 2
+
+p_val <- pt(t_stat, df)
+
+alpha <- 0.05 
+t_critical <- qt(alpha, df)
+
+print(paste("Slope (b) = ", slope_b, sep="")) 
+print(paste("t-statistic = ", t_stat, sep="")) 
+print(paste("Critical t value = ", t_critical, sep="")) 
+print(paste("p-value = ", p_val, sep="")) 
+print(paste("Rejected H_0: ", t_stat < t_critical))
+```
+
+This statistically confirms that there is a significant negative
+relationship: as a deck's average elixir cost deviates further from the
+universal mean, the player's chance of winning decreases.
