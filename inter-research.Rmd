@@ -117,25 +117,21 @@ Whichever player has the higher value of this sum, we expect to have a
 higher chance of winning, and the bigger the difference the better the
 chance.
 
--   **Null hypothesis** $H_0$: A player with the larger card level sum
-    has the same chance of winning as the player with the lower sum.
--   **Alternative Hypothesis** $H_1$: A player with the larger card
-    level sum has a higher chance of winning than the player with the
-    lower sum.
-
 **The test**: For testing this we will separate the data into two parts,
 one with wins where the card level sum is bigger than that of the
 opponent's and one with wins where the card level sum is less than the
 opponent's. Then we will use a simple z-test and compare the proportion
 of wins in each group and formulate a conclusion.
 
--   **Statistical null hypothesis** $H_0$: The proportion of wins in
-    both groups are equal (meaning the wins are evenly split 50/50).
+-   **Null hypothesis** $H_0$: The proportion of wins in
+    both groups are equal (the player with the larger card level sum
+    has the same chance of winning as the player with the lower sum).
 
--   **Statistical alternative hypothesis** $H_1$: The number of wins in
+-   **Alternative hypothesis** $H_1$: The number of wins in
     the group where the winning player has a higher card level sum is
-    bigger than that of the other group (meaning that the proportion of
-    wins is skewed towards players with the higher card level sum).
+    bigger than that of the other group (the player with the larger card
+    level sum has a higher chance of winning than the player with the
+    lower sum).
 
 Let each match be a random variable $X_i$. - $X_i = 1$ when the player
 with the higher card level sum wins. - $X_i = -1$ when the player with
@@ -171,6 +167,10 @@ $C_{\alpha} = \{z > z_{1-\alpha}\}$
 For $\alpha = 0.05$
 
 $C_{0.05} = \{z > z_{0.95}\}$ $C_{0.05} = \{z > 1.645\}$
+
+We can also compute the p-value, which for a z-test is just:
+
+$p = 1 - \Phi(z)$
 
 ```{r}
 winner_loser_counts <- raw_data %>%
@@ -403,3 +403,6 @@ print(paste("Rejected H_0: ", t_stat < t_critical))
 This statistically confirms that there is a significant negative
 relationship: as a deck's average elixir cost deviates further from the
 universal mean, the player's chance of winning decreases.
+
+## summary
+To summarize, we constructed two hypothesis from our dataset, and used two different tests to prove our suspicions. This was a nice exercise as this allowed us to go from theoretical usages of tests like the z-test and regression testing to using them on real data and seeing what results they bring.
