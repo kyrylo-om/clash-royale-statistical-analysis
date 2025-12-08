@@ -214,20 +214,16 @@ match outcome in favor of the player with the higher card level sum.
 
 **Data used**: `winner.elixir.average`, `loser.elixir.average`
 
-In Clash Royale you have to spend elixir to play a card. Though this
-elixir has to regenerate at set rates throughout the match. Each card
-has an elixir cost, which then defines the "average elixir cost" of a
-deck from the 8 cards in a deck. If the average is very low the cards
-are usually too weak and it’s hard to make an attack, but if it’s too
-high this can hinder the deck, as due to elixir having to regenerate,
-the player has to wait longer before playing a card and therefore has no
-options when they have to defend.
-
--   **Null hypothesis** $H_0$: the average elixir cost of a deck does
-    not affect the player’s chance of winning.\
--   **Alternative hypothesis** $H_1$: the more distant the average
-    elixir cost of a deck is from the universal average, the lower is
-    the chance that the player will win.
+In Clash Royale you have to spend elixir to play a card, though this
+elixir regenerates at set rates throughout the match. Each card has an
+elixir cost, which then defines the "average elixir cost" of a deck from
+the 8 cards in a deck. If the average is very low the cards are usually
+too weak and it’s hard to make an attack, but if it’s too high this can
+hinder the deck, as due to elixir having to regenerate, the player has
+to wait longer before playing a card and therefore has no options when
+they have to defend. So, we will test if it's true that a player has
+less chances of winning if their deck has an average elixir cost far
+from the universal mean. (E.g. the average cost is too high or too low)
 
 **The test:** to prove the correlation between the deviation of the
 average elixir cost from the universal mean $\mu$ and the chance of
@@ -244,12 +240,13 @@ the sum of wins in the group / total matches in the group. This
 probability is the Y-Axis. So the statistical hypotheses will look like
 this:
 
--   **Statistical null hypothesis** $H_0$: the slope of the regression
-    equation is equal to zero. (Means that x does not affect y in any
-    way)\
--   **Statistical alternative hypothesis** $H_1$: the slope of the
-    regression equation is negative. (Means that y gets smaller with
-    greater x)
+-   **Null hypothesis** $H_0$: the slope of the regression equation is
+    equal to zero. (Means that the average elixir cost of a deck does
+    not affect the probability of winning in any way)\
+-   **Alternative hypothesis** $H_1$: the slope of the regression
+    equation is negative. (Means that the probability of winning gets
+    smaller with greater deviation of the average elixir cost from the
+    universal mean)
 
 To validate the linear regression model $Y = a + bX$, we need to test if
 the slope $b$ is significantly different from 0. Specifically, we want
@@ -370,39 +367,12 @@ ggplot(results, aes(x = a)) +
   theme_minimal()
 ```
 
-This line doesn't fit very well. Could we improve it? Yes, we could, by
-adding a new parameter to the regression equation, making it quadratic:
+Not the best fit, but it doesn't really matter to us. We could make the
+model fit much better with a quadratic regression
+equation,$$Y = a + b X + cX^2$$
 
-$$Y = a + b X + cX^2$$
-
-```{r}
-polynomial_model <- lm(win_rate ~ a + I(a^2), data = results)
-
-results$predicted_polynomial <- predict(polynomial_model)
-
-summary(polynomial_model)
-
-ggplot(results, aes(x = a)) +
-  geom_line(aes(y = win_rate), color = "firebrick", size = 1.2) +
-  geom_point(aes(y = win_rate), color = "firebrick") +
-  
-  geom_line(aes(y = predicted_linear), color = "darkgreen", size = 1, linetype = "solid") +
-  
-  geom_line(aes(y = predicted_polynomial), color = "blue", size = 2, linetype = "solid") +
-  
-  labs(
-    title = "Impact of Deviation from Mean (Linear Fit)",
-    subtitle = "Red: Actual Data | Green: Linear Regression | Blue: Polynomial Regression",
-    x = "Deviation from the Mean (a)",
-    y = "Win Rate (%)"
-  ) +
-  theme_minimal()
-```
-
-Now it fits much better! But do we actually need a 100% accurate
-representation of the data for our hypothesis? Again, no. A simple
-linear regression is enough to test if the win rate depends on deviation
-or not.
+but for our case, a simple linear regression is enough to test if the
+win rate depends on deviation or not. Simplicity wins again.
 
 So now, having settled on the model and having the data, we can get to
 testing.
