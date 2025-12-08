@@ -37,13 +37,7 @@ raw_data <- read_csv(dataset_name) %>% rename(match_id = 1)
 
 ## Descriptive analysis of data
 
-Before we will try to make hypotheses we need to find general info about
-our data set. The main values which will be used in our research are
-elixir and levels of cards. For each card in the 16 (8 per deck) in one
-match, each has the level at which the card possesses and its elixir
-cost. Our discussions we will be using these values in averages(sums) in
-the selected deck (either winning or losing one). For those we will find
-the min, max, mean, variance, standard deviation and skewness.
+Before we will try to make hypotheses we need to find general info about our data set. For each card in the 16 (8 per deck) in one match, each has the level and its elixir cost. In our discussions we will be using averages(for elixir) and sums(for levels) for the selected deck . For those we will find the min, max, mean, variance and standard deviation.
 
 ```{r}
 all_elixir_costs <- c(raw_data$winner.elixir.average, raw_data$loser.elixir.average)
