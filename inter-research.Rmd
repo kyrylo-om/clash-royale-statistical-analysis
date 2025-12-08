@@ -13,15 +13,15 @@ editor_options:
 In this project we will analyze data from the [Clash Royale S18 Ladder
 Datasets (37.9M matches) \|
 Kaggle](https://www.kaggle.com/datasets/bwandowando/clash-royale-season-18-dec-0320-dataset)
-dataset to see how different cards impact the outcome of a match. Some
-of the data this dataset offers is: the arena, outcome of the match,
-trophy count of the players, hit-points of the towers at the end of the
-match, stats about the decks the winner and loser are using (average
-elixir, counts of different card types), and the 16 card IDs for both
-winner and loser (8 each), which can be used to gather even more data.
-This data was gathered from 37.9 million matches from December 07 2020
-to January 04 2021. From this data we will study how different cards,
-their stats, and other factors impact the outcome of a match.
+dataset to see how different factors impact the outcome of a match. This
+dataset offers incredibly broad statistics for each of its 37.9 million
+matches, from trophy counts of the players to hit-points of the towers
+at the end of the match, but, since we only have two hypotheses to make,
+we will mainly focus on two of them: average elixir costs of a deck and
+the sum of the deck's card levels. In this research we will study and
+test how they influence the outcome of the match, with our results being
+applicable to esports, where they can be used to build optimal
+strategies and win games more frequently in worldwide tournaments.
 
 ```{r}
 library(tidyverse)
