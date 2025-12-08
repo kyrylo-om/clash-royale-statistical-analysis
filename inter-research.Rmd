@@ -404,5 +404,5 @@ This statistically confirms that there is a significant negative
 relationship: as a deck's average elixir cost deviates further from the
 universal mean, the player's chance of winning decreases.
 
-## summary
+## Summary
 To summarize, we constructed two hypothesis from our dataset, and used two different tests to prove our suspicions. This was a nice exercise as this allowed us to go from theoretical usages of tests like the z-test and regression testing to using them on real data and seeing what results they bring.
