@@ -30,9 +30,76 @@ library(readxl)
 ```
 
 ```{r}
-dataset_name <- "archive/jan 1.csv"
+dataset_name <- "december.csv"
 
 raw_data <- read_csv(dataset_name) %>% rename(match_id = 1)
+```
+
+## Descriptive analysis of data
+
+Before we will try to make hypotheses we need to find general info about
+our data set. The main values which will be used in our research are
+elixir and levels of cards. For each card in the 16 (8 per deck) in one
+match, each has the level at which the card possesses and its elixir
+cost. Our discussions we will be using these values in averages(sums) in
+the selected deck (either winning or losing one). For those we will find
+the min, max, mean, variance, standard deviation and skewness.
+
+```{r}
+all_elixir_costs <- c(raw_data$winner.elixir.average, raw_data$loser.elixir.average)
+mu <- mean(all_elixir_costs, na.rm = TRUE) # Define mu for the histogram
+
+all_card_levels <- c(raw_data$winner.totalcard.level, raw_data$loser.totalcard.level)
+mu_levels <- mean(all_card_levels, na.rm = TRUE) 
+
+elixir_summary <- all_elixir_costs %>% 
+  data.frame(elixir = .) %>%
+  summarise(
+    Elixir = "Value",
+    N = n(),
+    Mean = mean(elixir, na.rm = TRUE),
+    Median = median(elixir, na.rm = TRUE),
+    SD = sd(elixir, na.rm = TRUE),
+    Min = min(elixir, na.rm = TRUE),
+    Max = max(elixir, na.rm = TRUE)
+  )
+print(elixir_summary)
+
+
+all_levels_summary <- all_card_levels %>% 
+  data.frame(level = .) %>%
+  summarise(
+    Levels = "Value",
+    N = n(),
+    Mean = mean(level, na.rm = TRUE),
+    Median = median(level, na.rm = TRUE),
+    SD = sd(level, na.rm = TRUE),
+    Min = min(level, na.rm = TRUE),
+    Max = max(level, na.rm = TRUE)
+  )
+
+print(all_levels_summary)
+```
+
+For a better visualization we need to plot the values.
+
+```{r}
+ggplot() +
+  geom_histogram(aes(x = all_elixir_costs), bins = 30, fill = "skyblue", color = "black") +
+  geom_vline(xintercept = mu, linetype = "dashed", color = "red", size = 1) +
+  labs(title = "Distribution of Deck Average Elixir Costs",
+       x = "Average Elixir Cost",
+       y = "Frequency") +
+  theme_minimal()
+
+ggplot() +
+  geom_histogram(aes(x = all_card_levels), bins = 40, fill = "#1F77B4", color = "black") +
+  geom_vline(xintercept = mu_levels, linetype = "dashed", color = "red", size = 1) +
+  labs(title = "Distribution of Total Deck Card Level Sums",
+       subtitle = paste("Mean Total Level Sum =", round(mu_levels, 2)),
+       x = "Total Card Level Sum (sum of 8 cards' levels)",
+       y = "Frequency (Number of Decks)") +
+  theme_minimal()
 ```
 
 ## Hypotheses we wish to explore:
